@@ -18,8 +18,8 @@ def fetch_doi_metadata_openalex(doi):
         return None
 
 # Web Sayfası Başlığı ve Ayarları
-st.set_page_config(page_title="Akademik Atama Puan Hesaplayıcı", page_icon="🎓")
-st.title("🎓 Akademik Atama Puan Hesaplayıcı")
+st.set_page_config(page_title="Akademik Atama Puan Hesaplayıcı", page_icon="")
+st.title("Akademik Atama Puan Hesaplayıcı")
 st.markdown("Makalenizin DOI numarasını ve isminizi girerek atama/teşvik puanınızı otomatik hesaplayın.")
 
 # Kategoriler ve Puanları
