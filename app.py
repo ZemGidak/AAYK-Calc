@@ -97,7 +97,7 @@ if st.button("Yazarları Bul ve Puanı Hesapla", type="primary"):
                 hesap_detayi += f"**Yazar (Tam Adı):** {matched_author_full_name}\n\n"
                 hesap_detayi += f"**Gerçek Yazar Sayısı:** {n_gercek}\n\n"
                 hesap_detayi += f"**Yazar Sıranız:** {position}. Yazar\n\n"
-                hesap_detayi += f"**Sorumlu Yazar (Corresponding):** {'Evet' if is_corresponding else 'Hayır'}\n\n"
+                hesap_detayi += f"**Sorumlu Yazar (Corresponding):** {':green[Evet]' if is_corresponding else ':red[Hayır]'}\n\n"
                 
                 if is_corresponding or n_gercek >= 5:
                     hesap_detayi += f"**Toplam Sorumlu Yazar Sayısı:** {toplam_sorumlu_sayisi}\n\n"
