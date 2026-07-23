@@ -8,17 +8,17 @@ def normalize_text(text):
     return text
 
 def fetch_doi_metadata_openalex(doi):
+    """OpenAlex API'den makalenin tüm verisini çeker."""
     url = f"https://api.openalex.org/works/doi:{doi}"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        data = response.json()
-        return data.get('authorships', [])
+        return response.json() # Artık sadece yazarları değil, tüm makale verisini döndürüyoruz
     except requests.exceptions.RequestException:
         return None
 
 # Web Sayfası Başlığı ve Ayarları
-st.set_page_config(page_title="Akademik Atama Puan Hesaplayıcı", page_icon="")
+st.set_page_config(page_title="Akademik Atama Puan Hesaplayıcı", page_icon="🎓")
 st.title("Akademik Atama Puan Hesaplayıcı")
 st.markdown("Makalenizin DOI numarasını ve isminizi girerek atama/teşvik puanınızı otomatik hesaplayın.")
 
@@ -30,7 +30,7 @@ puan_sozlugu = {
     "Q2": 8.0,
     "Q3": 4.0,
     "Q4": 2.0,
-    "TR Dizin": 1.0 
+    "TR Dizin": 3.0 
 }
 
 # Kullanıcı Giriş Alanları
@@ -47,30 +47,41 @@ if st.button("Yazarları Bul ve Puanı Hesapla", type="primary"):
     if not doi or not author_name:
         st.warning("Lütfen DOI ve İsim alanlarını eksiksiz doldurunuz.")
     else:
-        with st.spinner("OpenAlex API üzerinden yazarlar taranıyor..."):
-            authorships = fetch_doi_metadata_openalex(doi)
+        with st.spinner("OpenAlex API üzerinden veriler taranıyor..."):
+            work_data = fetch_doi_metadata_openalex(doi)
             
-        if authorships is None:
+        if work_data is None:
             st.error("Hata: DOI bulunamadı veya API'ye ulaşılamadı. Lütfen formatı kontrol edin.")
-        elif not authorships:
+        elif not work_data.get('authorships'):
             st.error("Bu DOI numarasına ait yazar bilgisi bulunamadı.")
         else:
+            authorships = work_data.get('authorships', [])
+            
+            # --- DERGİ ADINI BULMA ---
+            journal_name = "Belirtilmemiş Dergi"
+            primary_location = work_data.get('primary_location')
+            if primary_location and primary_location.get('source'):
+                journal_name = primary_location['source'].get('display_name', 'Belirtilmemiş Dergi')
+
             target_normalized = normalize_text(author_name)
             toplam_sorumlu_sayisi = max(1, sum(1 for auth in authorships if auth.get('is_corresponding', False)))
             
             found = False
             position = -1
             is_corresponding = False
+            matched_author_full_name = ""
             
             n_gercek = len(authorships)
             n_hesap = min(n_gercek, 5) 
             
+            # --- YAZAR ARAMA VE TAM İSİM YAKALAMA ---
             for i, auth in enumerate(authorships):
                 display_name = auth.get('author', {}).get('display_name', '')
                 if target_normalized in normalize_text(display_name):
                     found = True
                     position = i + 1
                     is_corresponding = auth.get('is_corresponding', False) 
+                    matched_author_full_name = display_name # Makaledeki resmi tam ismini kaydettik
                     break
                     
             if not found:
@@ -78,9 +89,12 @@ if st.button("Yazarları Bul ve Puanı Hesapla", type="primary"):
                  makale_yazarlari = [a.get('author', {}).get('display_name', '') for a in authorships]
                  st.info(f"Makaledeki Kayıtlı Yazarlar: {', '.join(makale_yazarlari)}")
             else:
-                # --- PUANLAMA MANTIĞI ---
+                # ================= PUANLAMA MANTIĞI VE EKRAN ÇIKTISI =================
                 puan = 0
+                
                 hesap_detayi = f"**Makale Kategorisi:** {secim} (Taban Puan: {tam_puan})\n\n"
+                hesap_detayi += f"**Dergi Adı:** {journal_name}\n\n"
+                hesap_detayi += f"**Yazar (Tam Adı):** {matched_author_full_name}\n\n"
                 hesap_detayi += f"**Gerçek Yazar Sayısı:** {n_gercek}\n\n"
                 hesap_detayi += f"**Yazar Sıranız:** {position}. Yazar\n\n"
                 hesap_detayi += f"**Sorumlu Yazar (Corresponding):** {'Evet' if is_corresponding else 'Hayır'}\n\n"
